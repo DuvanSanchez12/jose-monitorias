@@ -33,6 +33,11 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# AI / IDE config
+AGENTS.md
+.opencode/
+.cursor/
+
 # vercel
 .vercel
 
