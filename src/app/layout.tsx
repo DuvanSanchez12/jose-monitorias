@@ -21,6 +21,11 @@ export const metadata: Metadata = {
   title: "Monitorías - Jose Gilberto Soler Callejas",
   description:
     "Sistema de agendamiento de monitorías para estudiantes de medicina - Universidad del Tolima",
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
