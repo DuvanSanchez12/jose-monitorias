@@ -64,7 +64,8 @@ const STATUS_COLORS: Record<string, { bg: string; text: string; border: string; 
 
 function formatDateNatural(ds: string): string {
   const d = new Date(ds + "T12:00:00");
-  return d.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" });
+  const parts = d.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" }).split(" ");
+  return `${parts[0]}, ${parts[1]} ${parts[2]} ${parts[3]}`;
 }
 
 function formatTimeNatural(t: string): string {
@@ -464,7 +465,7 @@ export default function AdminMonitorias() {
                         const fecha = formatDateNatural(m.scheduled_date);
                         const hora = formatTimeNatural(m.scheduled_time);
                         const msg = encodeURIComponent(
-                          `¡Gracias por reservar una monitoría con Jose! Te espero el ${fecha} a las ${hora} para tratar el tema de ${m.topic || "tu interés"}. ¡Saludos!`
+                          `¡Hola ${m.student_name}, acabas de reservar una monitoría! Te espero el ${fecha} a las ${hora} para tratar el tema de ${m.topic || "tu interés"}.. ¡Saludos!`
                         );
                         window.open(`https://wa.me/57${m.student_phone}?text=${msg}`, "_blank");
                       }

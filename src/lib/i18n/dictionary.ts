@@ -80,7 +80,7 @@ const dictionary = {
       success: {
         title: "¡Solicitud Enviada con Éxito!",
         subtitle:
-          "Recibirás un correo electrónico cuando Jose confirme tu monitoría.",
+          "Recibirás un mensaje en whatsapp cuando Jose confirme tu monitoría.",
         summary: "Detalle de tu Solicitud",
         newBooking: "Agendar Otra Monitoría",
         goHome: "Volver al Inicio",
