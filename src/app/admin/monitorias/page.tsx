@@ -62,6 +62,19 @@ const STATUS_COLORS: Record<string, { bg: string; text: string; border: string; 
   },
 };
 
+function formatDateNatural(ds: string): string {
+  const d = new Date(ds + "T12:00:00");
+  return d.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" });
+}
+
+function formatTimeNatural(t: string): string {
+  const start = t.includes("-") ? t.split("-")[0].trim() : t;
+  const [h, m] = start.split(":").map(Number);
+  const period = h >= 12 ? "p.m." : "a.m.";
+  const h12 = h % 12 || 12;
+  return `${h12}:${m.toString().padStart(2, "0")} ${period}`;
+}
+
 const PREDEFINED_SLOTS = [
   "06:00 - 08:00",
   "08:00 - 10:00",
@@ -448,8 +461,10 @@ export default function AdminMonitorias() {
                     onClick={() => {
                       updateStatus(m.id, "confirmed");
                       if (m.student_phone) {
+                        const fecha = formatDateNatural(m.scheduled_date);
+                        const hora = formatTimeNatural(m.scheduled_time);
                         const msg = encodeURIComponent(
-                          `¡Gracias por reservar una monitoría con Jose! Te espero el día ${m.scheduled_date} a las ${m.scheduled_time} para tratar el tema de ${m.topic || "tu interés"}. ¡Saludos!`
+                          `¡Gracias por reservar una monitoría con Jose! Te espero el ${fecha} a las ${hora} para tratar el tema de ${m.topic || "tu interés"}. ¡Saludos!`
                         );
                         window.open(`https://wa.me/57${m.student_phone}?text=${msg}`, "_blank");
                       }
