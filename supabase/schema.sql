@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS monitorias (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   student_name TEXT NOT NULL,
   student_email TEXT NOT NULL,
+  student_phone TEXT,
   semester TEXT,
   program TEXT,
   topic TEXT,

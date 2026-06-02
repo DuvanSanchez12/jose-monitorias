@@ -9,6 +9,7 @@ type Monitoria = {
   id: string;
   student_name: string;
   student_email: string;
+  student_phone: string | null;
   semester: string | null;
   program: string | null;
   topic: string | null;
@@ -85,6 +86,7 @@ export default function AdminMonitorias() {
   const [form, setForm] = useState({
     student_name: "",
     student_email: "",
+    student_phone: "",
     semester: "",
     program: "",
     topic: "",
@@ -156,6 +158,7 @@ export default function AdminMonitorias() {
       {
         student_name: form.student_name,
         student_email: form.student_email,
+        student_phone: form.student_phone || null,
         semester: form.semester || null,
         program: form.program || null,
         topic: form.topic || null,
@@ -171,6 +174,7 @@ export default function AdminMonitorias() {
     setForm({
       student_name: "",
       student_email: "",
+      student_phone: "",
       semester: "",
       program: "",
       topic: "",
@@ -439,15 +443,25 @@ export default function AdminMonitorias() {
             {/* Actions */}
             <div className="flex flex-wrap gap-2 pt-3 border-t border-border">
               {m.status === "pending" && (
-                <button
-                  onClick={() => updateStatus(m.id, "confirmed")}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors cursor-pointer"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                  {dict.admin.confirmar}
-                </button>
+                <>
+                  <button
+                    onClick={() => {
+                      updateStatus(m.id, "confirmed");
+                      if (m.student_phone) {
+                        const msg = encodeURIComponent(
+                          `¡Gracias por reservar una monitoría con Jose! Te espero el día ${m.scheduled_date} a las ${m.scheduled_time} para tratar el tema de ${m.topic || "tu interés"}. ¡Saludos!`
+                        );
+                        window.open(`https://wa.me/57${m.student_phone}?text=${msg}`, "_blank");
+                      }
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-colors cursor-pointer"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    {m.student_phone ? dict.admin.whatsappConfirm : dict.admin.confirmar}
+                  </button>
+                </>
               )}
               {m.status === "confirmed" && (
                 <button
@@ -581,6 +595,17 @@ export default function AdminMonitorias() {
                 required
                 value={form.student_email}
                 onChange={(e) => setForm({ ...form, student_email: e.target.value })}
+                className="w-full border border-border rounded-lg px-3 py-2.5 bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-1.5">
+                {dict.admin.telefono}
+              </label>
+              <input
+                type="tel"
+                value={form.student_phone}
+                onChange={(e) => setForm({ ...form, student_phone: e.target.value })}
                 className="w-full border border-border rounded-lg px-3 py-2.5 bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all text-sm"
               />
             </div>

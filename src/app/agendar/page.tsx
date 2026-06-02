@@ -20,6 +20,7 @@ type PredefinedSlot = {
 type FormState = {
   student_name: string;
   student_email: string;
+  student_phone: string;
   semester: string;
   program: string;
   topic: string;
@@ -154,6 +155,18 @@ function Step1Info({
             value={form.student_email}
             onChange={(e) => setForm({ ...form, student_email: e.target.value })}
             placeholder={dict.agendar.form.emailPlaceholder}
+            className="w-full border border-border rounded-lg px-3 py-2.5 bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1.5">
+            {dict.agendar.form.phone}
+          </label>
+          <input
+            type="tel"
+            value={form.student_phone}
+            onChange={(e) => setForm({ ...form, student_phone: e.target.value })}
+            placeholder={dict.agendar.form.phonePlaceholder}
             className="w-full border border-border rounded-lg px-3 py-2.5 bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-sm"
           />
         </div>
@@ -354,6 +367,12 @@ function Step3Confirm({
         <span className="font-medium">{form.student_name}</span>
         <span className="text-zinc-500">{dict.agendar.summary.email}</span>
         <span className="font-medium">{form.student_email}</span>
+        {form.student_phone && (
+          <>
+            <span className="text-zinc-500">{dict.agendar.summary.phone}</span>
+            <span className="font-medium">{form.student_phone}</span>
+          </>
+        )}
         {form.semester && (
           <>
             <span className="text-zinc-500">{dict.agendar.summary.semester}</span>
@@ -490,6 +509,7 @@ export default function AgendarPage() {
   const [form, setForm] = useState<FormState>({
     student_name: "",
     student_email: "",
+    student_phone: "",
     semester: "",
     program: "",
     topic: "",
@@ -563,6 +583,7 @@ export default function AgendarPage() {
         {
           student_name: form.student_name,
           student_email: form.student_email,
+          student_phone: form.student_phone || null,
           semester: form.semester || null,
           program: form.program || null,
           topic: form.topic || null,
@@ -628,6 +649,7 @@ export default function AgendarPage() {
     setForm({
       student_name: "",
       student_email: "",
+      student_phone: "",
       semester: "",
       program: "",
       topic: "",
