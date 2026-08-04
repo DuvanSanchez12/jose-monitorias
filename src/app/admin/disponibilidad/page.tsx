@@ -57,7 +57,7 @@ export default function AdminDisponibilidad() {
   const [loading, setLoading] = useState(true);
   const [weekInput, setWeekInput] = useState("");
   const [saving, setSaving] = useState<Record<string, boolean>>({});
-  const [slotInputs, setSlotInputs] = useState<Record<string, { start: string; end: string }>>({});
+  const [slotError, setSlotError] = useState<string>("");
 
   const loadData = () => {
     if (!supabaseRef.current) supabaseRef.current = createClient();
@@ -72,6 +72,9 @@ export default function AdminDisponibilidad() {
         .order("date", { ascending: false })
         .order("start_time", { ascending: true }),
     ]).then(([daysResult, slotsResult]) => {
+      if (daysResult.error) setSlotError(daysResult.error.message);
+      else if (slotsResult.error) setSlotError(slotsResult.error.message);
+      else setSlotError("");
       if (daysResult.data) setDays(daysResult.data);
       if (slotsResult.data) setSlots(slotsResult.data);
       setLoading(false);
@@ -138,16 +141,25 @@ export default function AdminDisponibilidad() {
   };
 
   /* ── Add a slot to a day ── */
-  const addSlot = async (date: string) => {
-    const input = slotInputs[date] || { start: "", end: "" };
-    if (!input.start || !input.end) return;
-    if (input.start >= input.end) return;
+  const addSlot = async (date: string, start: string, end: string) => {
+    if (!start || !end) {
+      setSlotError(dict.admin.agregarError);
+      return;
+    }
+    if (start >= end) {
+      setSlotError(dict.admin.horaInvalida);
+      return;
+    }
     if (!supabaseRef.current) supabaseRef.current = createClient();
 
-    await supabaseRef.current.from("availability_slots").insert([
-      { date, start_time: input.start, end_time: input.end },
+    const { error } = await supabaseRef.current.from("availability_slots").insert([
+      { date, start_time: start, end_time: end },
     ]);
-    setSlotInputs({ ...slotInputs, [date]: { start: "", end: "" } });
+    if (error) {
+      setSlotError(error.message);
+      return;
+    }
+    setSlotError("");
     loadData();
   };
 
@@ -176,13 +188,6 @@ export default function AdminDisponibilidad() {
 
   const todayStr = formatDate(new Date());
 
-  const updateSlotInput = (date: string, key: "start" | "end", value: string) => {
-    setSlotInputs({
-      ...slotInputs,
-      [date]: { start: key === "start" ? value : (slotInputs[date]?.start || ""), end: key === "end" ? value : (slotInputs[date]?.end || "") },
-    });
-  };
-
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
 
@@ -209,6 +214,12 @@ export default function AdminDisponibilidad() {
           </p>
         </div>
       </div>
+
+      {slotError && (
+        <div className="mb-6 bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-3">
+          <strong>Error:</strong> {slotError}
+        </div>
+      )}
 
       {/* ── Week adder ── */}
       <div className="bg-white border-2 border-primary/10 rounded-2xl p-5 mb-8 shadow-sm">
@@ -310,7 +321,6 @@ export default function AdminDisponibilidad() {
                     const dayOfWeek = dateObj.getDay();
                     const isPast = day.date < todayStr;
                     const daySlots = slotsByDate.get(day.date) || [];
-                    const input = slotInputs[day.date] || { start: "", end: "" };
                     return (
                       <div
                         key={day.id}
@@ -375,31 +385,40 @@ export default function AdminDisponibilidad() {
 
                         {/* Add slot */}
                         {day.is_available && !isPast && (
-                          <div className="mt-3 flex items-center gap-2">
+                          <form
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              const fd = new FormData(e.currentTarget);
+                              addSlot(
+                                day.date,
+                                String(fd.get("start") || ""),
+                                String(fd.get("end") || "")
+                              );
+                              e.currentTarget.reset();
+                            }}
+                            className="mt-3 flex items-center gap-2"
+                          >
                             <input
+                              name="start"
                               type="time"
-                              value={input.start}
-                              onChange={(e) => updateSlotInput(day.date, "start", e.target.value)}
                               className="border border-border rounded-lg px-2 py-1.5 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
                             />
                             <span className="text-zinc-400 text-xs">–</span>
                             <input
+                              name="end"
                               type="time"
-                              value={input.end}
-                              onChange={(e) => updateSlotInput(day.date, "end", e.target.value)}
                               className="border border-border rounded-lg px-2 py-1.5 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
                             />
                             <button
-                              onClick={() => addSlot(day.date)}
-                              disabled={!input.start || !input.end || input.start >= input.end}
-                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary text-white hover:bg-primary-hover transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                              type="submit"
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary text-white hover:bg-primary-hover transition-colors cursor-pointer"
                             >
                               <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                               </svg>
                               {dict.admin.agregar}
                             </button>
-                          </div>
+                          </form>
                         )}
                       </div>
                     );
