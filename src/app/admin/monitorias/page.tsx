@@ -108,8 +108,6 @@ export default function AdminMonitorias() {
     description: "",
     mode: "virtual",
     scheduled_date: "",
-    start_time: "",
-    end_time: "",
     status: "confirmed" as string,
   });
 
@@ -169,8 +167,9 @@ export default function AdminMonitorias() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    const start = normalizeTime(form.start_time);
-    const end = normalizeTime(form.end_time);
+    const fd = new FormData(e.currentTarget as HTMLFormElement);
+    const start = normalizeTime(String(fd.get("start_time") || ""));
+    const end = normalizeTime(String(fd.get("end_time") || ""));
     if (!start || !end) {
       alert(dict.admin.horaFormato);
       return;
@@ -207,8 +206,6 @@ export default function AdminMonitorias() {
       description: "",
       mode: "virtual",
       scheduled_date: "",
-      start_time: "",
-      end_time: "",
       status: "confirmed",
     });
     loadMonitorias();
@@ -584,6 +581,7 @@ export default function AdminMonitorias() {
         {/* ── Create form ── */}
         {showForm && (
           <form
+            noValidate
             onSubmit={handleCreate}
             className="bg-white border-2 border-primary/10 rounded-2xl p-6 mb-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 shadow-lg shadow-primary/5 animate-in slide-in-from-top-2 duration-200"
           >
@@ -703,14 +701,8 @@ export default function AdminMonitorias() {
                 {dict.admin.horaInicio} <span className="text-primary">*</span>
               </label>
               <input
-                type="text"
-                inputMode="numeric"
-                required
-                placeholder="08:00"
-                maxLength={5}
-                autoComplete="off"
-                value={form.start_time}
-                onChange={(e) => setForm({ ...form, start_time: e.target.value })}
+                type="time"
+                name="start_time"
                 className="w-full border border-border rounded-lg px-3 py-2.5 bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all text-sm"
               />
             </div>
@@ -719,14 +711,8 @@ export default function AdminMonitorias() {
                 {dict.admin.horaFin} <span className="text-primary">*</span>
               </label>
               <input
-                type="text"
-                inputMode="numeric"
-                required
-                placeholder="09:00"
-                maxLength={5}
-                autoComplete="off"
-                value={form.end_time}
-                onChange={(e) => setForm({ ...form, end_time: e.target.value })}
+                type="time"
+                name="end_time"
                 className="w-full border border-border rounded-lg px-3 py-2.5 bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all text-sm"
               />
             </div>

@@ -412,22 +412,14 @@ export default function AdminDisponibilidad() {
                           >
                             <input
                               name="start"
-                              type="text"
-                              inputMode="numeric"
-                              placeholder="08:00"
-                              maxLength={5}
-                              autoComplete="off"
-                              className="w-24 border border-border rounded-lg px-2 py-1.5 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+                              type="time"
+                              className="border border-border rounded-lg px-2 py-1.5 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
                             />
                             <span className="text-zinc-400 text-xs">–</span>
                             <input
                               name="end"
-                              type="text"
-                              inputMode="numeric"
-                              placeholder="09:00"
-                              maxLength={5}
-                              autoComplete="off"
-                              className="w-24 border border-border rounded-lg px-2 py-1.5 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+                              type="time"
+                              className="border border-border rounded-lg px-2 py-1.5 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
                             />
                             <button
                               type="submit"
