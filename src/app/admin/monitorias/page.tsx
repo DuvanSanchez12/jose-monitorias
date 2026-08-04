@@ -77,7 +77,7 @@ function formatTimeNatural(t: string): string {
 }
 
 function normalizeTime(value: string): string {
-  const m = value.trim().match(/^(\d{1,2}):(\d{2})$/);
+  const m = value.trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
   if (!m) return "";
   const h = Number(m[1]);
   const min = Number(m[2]);
@@ -703,6 +703,7 @@ export default function AdminMonitorias() {
               <input
                 type="time"
                 name="start_time"
+                defaultValue="08:00"
                 className="w-full border border-border rounded-lg px-3 py-2.5 bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all text-sm"
               />
             </div>
@@ -713,6 +714,7 @@ export default function AdminMonitorias() {
               <input
                 type="time"
                 name="end_time"
+                defaultValue="09:00"
                 className="w-full border border-border rounded-lg px-3 py-2.5 bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all text-sm"
               />
             </div>

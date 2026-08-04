@@ -49,7 +49,7 @@ function formatSlotLabel(s: AvailabilitySlot): string {
 }
 
 function normalizeTime(value: string): string {
-  const m = value.trim().match(/^(\d{1,2}):(\d{2})$/);
+  const m = value.trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
   if (!m) return "";
   const h = Number(m[1]);
   const min = Number(m[2]);
@@ -413,12 +413,14 @@ export default function AdminDisponibilidad() {
                             <input
                               name="start"
                               type="time"
+                              defaultValue="08:00"
                               className="border border-border rounded-lg px-2 py-1.5 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
                             />
                             <span className="text-zinc-400 text-xs">–</span>
                             <input
                               name="end"
                               type="time"
+                              defaultValue="09:00"
                               className="border border-border rounded-lg px-2 py-1.5 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
                             />
                             <button
