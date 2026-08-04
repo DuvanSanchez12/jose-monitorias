@@ -48,6 +48,15 @@ function formatSlotLabel(s: AvailabilitySlot): string {
   return `${s.start_time} - ${s.end_time}`;
 }
 
+function normalizeTime(value: string): string {
+  const m = value.trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return "";
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  if (h > 23 || min > 59) return "";
+  return `${String(h).padStart(2, "0")}:${m[2]}`;
+}
+
 export default function AdminDisponibilidad() {
   const { dict, lang } = useI18n();
   const DAYS = lang === "es" ? DAY_NAMES_ES : DAY_NAMES_EN;
@@ -141,9 +150,11 @@ export default function AdminDisponibilidad() {
   };
 
   /* ── Add a slot to a day ── */
-  const addSlot = async (date: string, start: string, end: string) => {
+  const addSlot = async (date: string, rawStart: string, rawEnd: string) => {
+    const start = normalizeTime(rawStart);
+    const end = normalizeTime(rawEnd);
     if (!start || !end) {
-      setSlotError(dict.admin.agregarError);
+      setSlotError(dict.admin.horaFormato);
       return;
     }
     if (start >= end) {
@@ -386,6 +397,7 @@ export default function AdminDisponibilidad() {
                         {/* Add slot */}
                         {day.is_available && !isPast && (
                           <form
+                            noValidate
                             onSubmit={(e) => {
                               e.preventDefault();
                               const fd = new FormData(e.currentTarget);
@@ -400,14 +412,22 @@ export default function AdminDisponibilidad() {
                           >
                             <input
                               name="start"
-                              type="time"
-                              className="border border-border rounded-lg px-2 py-1.5 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+                              type="text"
+                              inputMode="numeric"
+                              placeholder="08:00"
+                              maxLength={5}
+                              autoComplete="off"
+                              className="w-24 border border-border rounded-lg px-2 py-1.5 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
                             />
                             <span className="text-zinc-400 text-xs">–</span>
                             <input
                               name="end"
-                              type="time"
-                              className="border border-border rounded-lg px-2 py-1.5 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+                              type="text"
+                              inputMode="numeric"
+                              placeholder="09:00"
+                              maxLength={5}
+                              autoComplete="off"
+                              className="w-24 border border-border rounded-lg px-2 py-1.5 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
                             />
                             <button
                               type="submit"

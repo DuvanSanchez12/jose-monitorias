@@ -76,6 +76,15 @@ function formatTimeNatural(t: string): string {
   return `${h12}:${m.toString().padStart(2, "0")} ${period}`;
 }
 
+function normalizeTime(value: string): string {
+  const m = value.trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return "";
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  if (h > 23 || min > 59) return "";
+  return `${String(h).padStart(2, "0")}:${m[2]}`;
+}
+
 export default function AdminMonitorias() {
   const { dict, lang } = useI18n();
   const [monitorias, setMonitorias] = useState<Monitoria[]>([]);
@@ -160,6 +169,16 @@ export default function AdminMonitorias() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    const start = normalizeTime(form.start_time);
+    const end = normalizeTime(form.end_time);
+    if (!start || !end) {
+      alert(dict.admin.horaFormato);
+      return;
+    }
+    if (start >= end) {
+      alert(dict.admin.horaInvalida);
+      return;
+    }
     if (!supabaseRef.current) supabaseRef.current = createClient();
     await supabaseRef.current.from("monitorias").insert([
       {
@@ -173,7 +192,7 @@ export default function AdminMonitorias() {
         mode: form.mode,
         status: form.status,
         scheduled_date: form.scheduled_date,
-          scheduled_time: `${form.start_time} - ${form.end_time}`,
+          scheduled_time: `${start} - ${end}`,
           created_by: "admin",
         },
       ]);
@@ -684,8 +703,12 @@ export default function AdminMonitorias() {
                 {dict.admin.horaInicio} <span className="text-primary">*</span>
               </label>
               <input
-                type="time"
+                type="text"
+                inputMode="numeric"
                 required
+                placeholder="08:00"
+                maxLength={5}
+                autoComplete="off"
                 value={form.start_time}
                 onChange={(e) => setForm({ ...form, start_time: e.target.value })}
                 className="w-full border border-border rounded-lg px-3 py-2.5 bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all text-sm"
@@ -696,8 +719,12 @@ export default function AdminMonitorias() {
                 {dict.admin.horaFin} <span className="text-primary">*</span>
               </label>
               <input
-                type="time"
+                type="text"
+                inputMode="numeric"
                 required
+                placeholder="09:00"
+                maxLength={5}
+                autoComplete="off"
                 value={form.end_time}
                 onChange={(e) => setForm({ ...form, end_time: e.target.value })}
                 className="w-full border border-border rounded-lg px-3 py-2.5 bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all text-sm"
