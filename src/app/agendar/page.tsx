@@ -593,7 +593,7 @@ export default function AgendarPage() {
           mode: form.mode,
           status: "pending",
           scheduled_date: form.scheduled_date,
-          scheduled_time: form.scheduled_time,
+          scheduled_time: form.scheduled_time.split(" - ")[0],
           created_by: "student",
         },
       ]);

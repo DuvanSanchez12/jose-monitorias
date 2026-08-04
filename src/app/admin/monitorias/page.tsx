@@ -191,7 +191,7 @@ export default function AdminMonitorias() {
         mode: form.mode,
         status: form.status,
         scheduled_date: form.scheduled_date,
-          scheduled_time: `${start} - ${end}`,
+          scheduled_time: start,
           created_by: "admin",
         },
       ]);
