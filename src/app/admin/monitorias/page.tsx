@@ -76,14 +76,6 @@ function formatTimeNatural(t: string): string {
   return `${h12}:${m.toString().padStart(2, "0")} ${period}`;
 }
 
-const PREDEFINED_SLOTS = [
-  "06:00 - 08:00",
-  "08:00 - 10:00",
-  "14:00 - 16:00",
-  "16:00 - 18:00",
-  "20:00 - 22:00",
-];
-
 export default function AdminMonitorias() {
   const { dict, lang } = useI18n();
   const [monitorias, setMonitorias] = useState<Monitoria[]>([]);
@@ -107,7 +99,8 @@ export default function AdminMonitorias() {
     description: "",
     mode: "virtual",
     scheduled_date: "",
-    scheduled_time: "",
+    start_time: "",
+    end_time: "",
     status: "confirmed" as string,
   });
 
@@ -180,7 +173,7 @@ export default function AdminMonitorias() {
         mode: form.mode,
         status: form.status,
         scheduled_date: form.scheduled_date,
-          scheduled_time: form.scheduled_time.split(" - ")[0],
+          scheduled_time: `${form.start_time} - ${form.end_time}`,
           created_by: "admin",
         },
       ]);
@@ -195,7 +188,8 @@ export default function AdminMonitorias() {
       description: "",
       mode: "virtual",
       scheduled_date: "",
-      scheduled_time: "",
+      start_time: "",
+      end_time: "",
       status: "confirmed",
     });
     loadMonitorias();
@@ -687,19 +681,27 @@ export default function AdminMonitorias() {
             </div>
             <div>
               <label className="block text-sm font-semibold mb-1.5">
-                {dict.admin.hora} <span className="text-primary">*</span>
+                {dict.admin.horaInicio} <span className="text-primary">*</span>
               </label>
-              <select
+              <input
+                type="time"
                 required
-                value={form.scheduled_time}
-                onChange={(e) => setForm({ ...form, scheduled_time: e.target.value })}
+                value={form.start_time}
+                onChange={(e) => setForm({ ...form, start_time: e.target.value })}
                 className="w-full border border-border rounded-lg px-3 py-2.5 bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all text-sm"
-              >
-                <option value="">—</option>
-                {PREDEFINED_SLOTS.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold mb-1.5">
+                {dict.admin.horaFin} <span className="text-primary">*</span>
+              </label>
+              <input
+                type="time"
+                required
+                value={form.end_time}
+                onChange={(e) => setForm({ ...form, end_time: e.target.value })}
+                className="w-full border border-border rounded-lg px-3 py-2.5 bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all text-sm"
+              />
             </div>
             <div>
               <label className="block text-sm font-semibold mb-1.5">

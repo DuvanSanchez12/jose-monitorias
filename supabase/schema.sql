@@ -40,6 +40,17 @@ CREATE TABLE IF NOT EXISTS availability_days (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Create availability_slots table (custom time slots per day)
+CREATE TABLE IF NOT EXISTS availability_slots (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  date DATE NOT NULL,
+  start_time TEXT NOT NULL,
+  end_time TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_availability_slots_date
+  ON availability_slots (date);
+
 -- Create topics table
 CREATE TABLE IF NOT EXISTS topics (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -73,6 +84,7 @@ ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE availability_weekly ENABLE ROW LEVEL SECURITY;
 ALTER TABLE availability_specific ENABLE ROW LEVEL SECURITY;
 ALTER TABLE availability_days ENABLE ROW LEVEL SECURITY;
+ALTER TABLE availability_slots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE topics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE monitorias ENABLE ROW LEVEL SECURITY;
 
@@ -87,6 +99,8 @@ DO $$ BEGIN
   DROP POLICY IF EXISTS "Only authenticated users can manage specific availability" ON availability_specific;
   DROP POLICY IF EXISTS "Availability days are viewable by everyone" ON availability_days;
   DROP POLICY IF EXISTS "Only authenticated users can manage availability days" ON availability_days;
+  DROP POLICY IF EXISTS "Availability slots are viewable by everyone" ON availability_slots;
+  DROP POLICY IF EXISTS "Only authenticated users can manage availability slots" ON availability_slots;
   DROP POLICY IF EXISTS "Topics are viewable by everyone" ON topics;
   DROP POLICY IF EXISTS "Only authenticated users can manage topics" ON topics;
   DROP POLICY IF EXISTS "Monitorias are viewable by everyone (for public scheduling)" ON monitorias;
@@ -121,6 +135,12 @@ CREATE POLICY "Availability days are viewable by everyone"
 
 CREATE POLICY "Only authenticated users can manage availability days"
   ON availability_days FOR ALL USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Availability slots are viewable by everyone"
+  ON availability_slots FOR SELECT USING (TRUE);
+
+CREATE POLICY "Only authenticated users can manage availability slots"
+  ON availability_slots FOR ALL USING (auth.role() = 'authenticated');
 
 CREATE POLICY "Topics are viewable by everyone"
   ON topics FOR SELECT USING (TRUE);

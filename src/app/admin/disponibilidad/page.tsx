@@ -11,6 +11,13 @@ type AvailabilityDay = {
   is_available: boolean;
 };
 
+type AvailabilitySlot = {
+  id: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+};
+
 const DAY_NAMES_ES = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const DAY_NAMES_EN = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -37,25 +44,38 @@ function formatWeekLabel(weekStart: Date, lang: string): string {
   return `${fmt(start)} – ${fmt(end)}`;
 }
 
+function formatSlotLabel(s: AvailabilitySlot): string {
+  return `${s.start_time} - ${s.end_time}`;
+}
+
 export default function AdminDisponibilidad() {
   const { dict, lang } = useI18n();
   const DAYS = lang === "es" ? DAY_NAMES_ES : DAY_NAMES_EN;
   const supabaseRef = useRef<SupabaseClient | null>(null);
   const [days, setDays] = useState<AvailabilityDay[]>([]);
+  const [slots, setSlots] = useState<AvailabilitySlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [weekInput, setWeekInput] = useState("");
   const [saving, setSaving] = useState<Record<string, boolean>>({});
+  const [slotInputs, setSlotInputs] = useState<Record<string, { start: string; end: string }>>({});
 
   const loadData = () => {
     if (!supabaseRef.current) supabaseRef.current = createClient();
-    supabaseRef.current
-      .from("availability_days")
-      .select("*")
-      .order("date", { ascending: false })
-      .then(({ data }) => {
-        if (data) setDays(data);
-        setLoading(false);
-      });
+    Promise.all([
+      supabaseRef.current
+        .from("availability_days")
+        .select("*")
+        .order("date", { ascending: false }),
+      supabaseRef.current
+        .from("availability_slots")
+        .select("*")
+        .order("date", { ascending: false })
+        .order("start_time", { ascending: true }),
+    ]).then(([daysResult, slotsResult]) => {
+      if (daysResult.data) setDays(daysResult.data);
+      if (slotsResult.data) setSlots(slotsResult.data);
+      setLoading(false);
+    });
   };
 
   useEffect(() => {
@@ -73,6 +93,12 @@ export default function AdminDisponibilidad() {
   const weekEntries = Array.from(weeks.entries()).sort((a, b) =>
     b[0].localeCompare(a[0])
   );
+
+  const slotsByDate = new Map<string, AvailabilitySlot[]>();
+  for (const s of slots) {
+    if (!slotsByDate.has(s.date)) slotsByDate.set(s.date, []);
+    slotsByDate.get(s.date)!.push(s);
+  }
 
   /* ── Add a week (creates 7 days) ── */
   const addWeek = async () => {
@@ -111,19 +137,51 @@ export default function AdminDisponibilidad() {
     loadData();
   };
 
+  /* ── Add a slot to a day ── */
+  const addSlot = async (date: string) => {
+    const input = slotInputs[date] || { start: "", end: "" };
+    if (!input.start || !input.end) return;
+    if (input.start >= input.end) return;
+    if (!supabaseRef.current) supabaseRef.current = createClient();
+
+    await supabaseRef.current.from("availability_slots").insert([
+      { date, start_time: input.start, end_time: input.end },
+    ]);
+    setSlotInputs({ ...slotInputs, [date]: { start: "", end: "" } });
+    loadData();
+  };
+
+  /* ── Delete a slot ── */
+  const deleteSlot = async (id: string) => {
+    if (!supabaseRef.current) supabaseRef.current = createClient();
+    await supabaseRef.current.from("availability_slots").delete().eq("id", id);
+    loadData();
+  };
+
   /* ── Delete a whole week ── */
   const deleteWeek = async (weekKey: string) => {
     if (!supabaseRef.current) supabaseRef.current = createClient();
     const weekDays = weeks.get(weekKey) || [];
-    const ids = weekDays.map((d) => d.id);
+    const dates = weekDays.map((d) => d.date);
     await supabaseRef.current
       .from("availability_days")
       .delete()
-      .in("id", ids);
+      .in("id", weekDays.map((d) => d.id));
+    await supabaseRef.current
+      .from("availability_slots")
+      .delete()
+      .in("date", dates);
     loadData();
   };
 
   const todayStr = formatDate(new Date());
+
+  const updateSlotInput = (date: string, key: "start" | "end", value: string) => {
+    setSlotInputs({
+      ...slotInputs,
+      [date]: { start: key === "start" ? value : (slotInputs[date]?.start || ""), end: key === "end" ? value : (slotInputs[date]?.end || "") },
+    });
+  };
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
@@ -251,38 +309,98 @@ export default function AdminDisponibilidad() {
                     const dateObj = new Date(day.date + "T12:00:00");
                     const dayOfWeek = dateObj.getDay();
                     const isPast = day.date < todayStr;
+                    const daySlots = slotsByDate.get(day.date) || [];
+                    const input = slotInputs[day.date] || { start: "", end: "" };
                     return (
                       <div
                         key={day.id}
-                        className={`flex items-center justify-between px-5 py-3 transition-colors ${day.is_available ? "" : "bg-red-50/40"}`}
+                        className={`px-5 py-3 transition-colors ${day.is_available ? "" : "bg-red-50/40"}`}
                       >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center shrink-0">
-                            <span className="text-xs font-bold text-zinc-500">
-                              {DAYS[dayOfWeek]}
-                            </span>
-                          </div>
-                          <div className="min-w-0">
-                            <span className="font-medium text-sm">
-                              {dateObj.toLocaleDateString(
-                                lang === "es" ? "es-CO" : "en-US",
-                                { month: "short", day: "numeric" }
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center shrink-0">
+                              <span className="text-xs font-bold text-zinc-500">
+                                {DAYS[dayOfWeek]}
+                              </span>
+                            </div>
+                            <div className="min-w-0">
+                              <span className="font-medium text-sm">
+                                {dateObj.toLocaleDateString(
+                                  lang === "es" ? "es-CO" : "en-US",
+                                  { month: "short", day: "numeric" }
+                                )}
+                              </span>
+                              {daySlots.length > 0 && (
+                                <span className="block text-xs text-primary font-medium">
+                                  {daySlots.length} {dict.admin.horarios}
+                                </span>
                               )}
-                            </span>
+                            </div>
                           </div>
+                          <button
+                            onClick={() => toggleDay(day.id, day.is_available)}
+                            disabled={saving[day.id] || isPast}
+                            className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:ring-offset-1 cursor-pointer
+                              ${day.is_available ? "bg-green-500" : "bg-zinc-300"}
+                              ${isPast ? "opacity-50 cursor-not-allowed" : ""}`}
+                          >
+                            <span
+                              className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition duration-200
+                                ${day.is_available ? "translate-x-5" : "translate-x-0"}`}
+                            />
+                          </button>
                         </div>
-                        <button
-                          onClick={() => toggleDay(day.id, day.is_available)}
-                          disabled={saving[day.id] || isPast}
-                          className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:ring-offset-1 cursor-pointer
-                            ${day.is_available ? "bg-green-500" : "bg-zinc-300"}
-                            ${isPast ? "opacity-50 cursor-not-allowed" : ""}`}
-                        >
-                          <span
-                            className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition duration-200
-                              ${day.is_available ? "translate-x-5" : "translate-x-0"}`}
-                          />
-                        </button>
+
+                        {/* Slots */}
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {daySlots.map((s) => (
+                            <span
+                              key={s.id}
+                              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium bg-primary/10 text-primary border border-primary/20"
+                            >
+                              {formatSlotLabel(s)}
+                              <button
+                                onClick={() => deleteSlot(s.id)}
+                                disabled={isPast}
+                                className="text-primary/60 hover:text-red-600 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                                aria-label="Eliminar"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+
+                        {/* Add slot */}
+                        {day.is_available && !isPast && (
+                          <div className="mt-3 flex items-center gap-2">
+                            <input
+                              type="time"
+                              value={input.start}
+                              onChange={(e) => updateSlotInput(day.date, "start", e.target.value)}
+                              className="border border-border rounded-lg px-2 py-1.5 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+                            />
+                            <span className="text-zinc-400 text-xs">–</span>
+                            <input
+                              type="time"
+                              value={input.end}
+                              onChange={(e) => updateSlotInput(day.date, "end", e.target.value)}
+                              className="border border-border rounded-lg px-2 py-1.5 text-sm bg-transparent focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+                            />
+                            <button
+                              onClick={() => addSlot(day.date)}
+                              disabled={!input.start || !input.end || input.start >= input.end}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary text-white hover:bg-primary-hover transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                              </svg>
+                              {dict.admin.agregar}
+                            </button>
+                          </div>
+                        )}
                       </div>
                     );
                   })}

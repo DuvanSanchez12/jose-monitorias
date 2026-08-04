@@ -11,7 +11,7 @@ type Topic = {
   title: string;
 };
 
-type PredefinedSlot = {
+type FreeSlot = {
   label: string;
   start: string;
   end: string;
@@ -29,16 +29,6 @@ type FormState = {
   scheduled_date: string;
   scheduled_time: string;
 };
-
-const PREDEFINED_SLOTS: PredefinedSlot[] = [
-  { label: "06:00 - 08:00", start: "06:00", end: "08:00" },
-  { label: "08:00 - 10:00", start: "08:00", end: "10:00" },
-  { label: "14:00 - 16:00", start: "14:00", end: "16:00" },
-  { label: "16:00 - 18:00", start: "16:00", end: "18:00" },
-  { label: "20:00 - 22:00", start: "20:00", end: "22:00" },
-];
-
-const timeForDb = (label: string) => label.split(" - ")[0];
 
 function generateDateRange(days: number): string[] {
   const dates: string[] = [];
@@ -279,9 +269,9 @@ function Step2DateTime({
   dict: any;
   form: FormState;
   availableDates: string[];
-  freeSlots: PredefinedSlot[];
+  freeSlots: FreeSlot[];
   onSelectDate: (date: string) => void;
-  onSelectSlot: (slot: PredefinedSlot) => void;
+  onSelectSlot: (slot: FreeSlot) => void;
   lang: string;
 }) {
   return (
@@ -499,7 +489,7 @@ export default function AgendarPage() {
   const { dict, lang } = useI18n();
   const supabaseRef = useRef<SupabaseClient | null>(null);
   const [topics, setTopics] = useState<Topic[]>([]);
-  const [freeSlots, setFreeSlots] = useState<PredefinedSlot[]>([]);
+  const [freeSlots, setFreeSlots] = useState<FreeSlot[]>([]);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
@@ -544,23 +534,35 @@ export default function AgendarPage() {
     const supabase = supabaseRef.current;
     if (!supabase) return;
 
-    const { data: booked } = await supabase
-      .from("monitorias")
-      .select("scheduled_time")
-      .eq("scheduled_date", date)
-      .neq("status", "cancelled");
+    const [slotsResult, bookedResult] = await Promise.all([
+      supabase
+        .from("availability_slots")
+        .select("id, start_time, end_time")
+        .eq("date", date)
+        .order("start_time", { ascending: true }),
+      supabase
+        .from("monitorias")
+        .select("scheduled_time")
+        .eq("scheduled_date", date)
+        .neq("status", "cancelled"),
+    ]);
 
     const bookedStarts = new Set(
-      (booked || []).map((b: any) => b.scheduled_time.substring(0, 5))
+      (bookedResult.data || []).map((b: any) => b.scheduled_time.substring(0, 5))
     );
 
-    const available = PREDEFINED_SLOTS.filter(
-      (slot) => !bookedStarts.has(slot.start)
-    );
+    const available: FreeSlot[] = (slotsResult.data || [])
+      .map((s: any) => ({
+        label: `${s.start_time} - ${s.end_time}`,
+        start: s.start_time,
+        end: s.end_time,
+      }))
+      .filter((slot: FreeSlot) => !bookedStarts.has(slot.start));
+
     setFreeSlots(available);
   };
 
-  const selectSlot = (slot: PredefinedSlot) => {
+  const selectSlot = (slot: FreeSlot) => {
     setForm({ ...form, scheduled_time: slot.label });
   };
 
@@ -591,7 +593,7 @@ export default function AgendarPage() {
           mode: form.mode,
           status: "pending",
           scheduled_date: form.scheduled_date,
-          scheduled_time: timeForDb(form.scheduled_time),
+          scheduled_time: form.scheduled_time,
           created_by: "student",
         },
       ]);
@@ -600,16 +602,29 @@ export default function AgendarPage() {
       if (insertError.code !== "23505") {
         setError(dict.agendar.error);
       }
-      const { data: booked } = await supabase
-        .from("monitorias")
-        .select("scheduled_time")
-        .eq("scheduled_date", form.scheduled_date)
-        .neq("status", "cancelled");
+      const [slotsResult, bookedResult] = await Promise.all([
+        supabase
+          .from("availability_slots")
+          .select("id, start_time, end_time")
+          .eq("date", form.scheduled_date)
+          .order("start_time", { ascending: true }),
+        supabase
+          .from("monitorias")
+          .select("scheduled_time")
+          .eq("scheduled_date", form.scheduled_date)
+          .neq("status", "cancelled"),
+      ]);
       const bookedStarts = new Set(
-        (booked || []).map((b: any) => b.scheduled_time.substring(0, 5))
+        (bookedResult.data || []).map((b: any) => b.scheduled_time.substring(0, 5))
       );
       setFreeSlots(
-        PREDEFINED_SLOTS.filter((slot) => !bookedStarts.has(slot.start))
+        (slotsResult.data || [])
+          .map((s: any) => ({
+            label: `${s.start_time} - ${s.end_time}`,
+            start: s.start_time,
+            end: s.end_time,
+          }))
+          .filter((slot: FreeSlot) => !bookedStarts.has(slot.start))
       );
       setForm({ ...form, scheduled_time: "" });
       setLoading(false);
